@@ -1,5 +1,5 @@
 Dictionary entry data crawler for the Middle English Dictionary
-![MED](https://quod.lib.umich.edu/m/middle-english-dictionary/dictionary).
+[MED](https://quod.lib.umich.edu/m/middle-english-dictionary/dictionary).
 
 
 ## Installation
