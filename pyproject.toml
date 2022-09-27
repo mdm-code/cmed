@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cmed"
+version = "0.1.0"
+description = "Dictionary entry data crawler for the Middle English Dictionary."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+	{ name = "Michał Adamczyk" }
+]
+keywords = [
+	"lemmatization",
+	"dictionary",
+	"crawler",
+	"Middle English",
+	"NLP",
+	"database",
+]
+dependencies = [
+]
+requires-python = ">=3.10"
+
+[project.urls]
+Homepage = "https://github.com/mdm-code/cmed"
+
+[project.optional-dependencies]
+dev = [
+	"pytest",
+	"pytest-cov",
+	"mypy",
+	"black",
+	"pre-commit",
+]
+
+[tool.setuptools.packages.find]
+include = [
+	"med_crawler",
+	"med_crawler*",
+]
+
+[project.scripts]
+cmed = "med_crawler.__main__:main"
+
+[tool.black]
+line-length = 79
+
+[tool.pytest.ini_options]
+addopts = "-p no:warnings"
+
+[tool.mypy]
+ignore_missing_imports = true
