@@ -14,7 +14,41 @@ A detailed description on how to use `cmed`.
 
 ## Development
 
-A short description of how to get the development environment up to speed.
+This program relies on Python version 3.10 and later.
+
+To get the development environment up and running, first, create Python virtual
+environment with this `venv` command:
+
+```sh
+python3.10 -m venv .
+```
+
+Acitivate (and deactivate) the virtual environment with the following commands:
+
+```sh
+. bin/activate
+deactivate
+```
+
+Install the package in the editable mode alongside all of its development
+dependencies and upgrade `pip` with `make`:
+
+```sh
+make install
+```
+
+Type annotation checking, code formatting and automatic testing can be initiated
+with the following `make` command:
+
+```sh
+make test
+```
+
+Use `pre-commit` to run the CI routine when committing code to VCS by
+installing it with `pre-commit install`. You can manualy run the routine with
+`pre-commit run`.
+
+Consult [Makefile](Makefile) for further details.
 
 
 ## License
