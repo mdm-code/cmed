@@ -11,6 +11,11 @@ An account of how to install and deploy `cmed` on the machine.
 
 A detailed description on how to use `cmed`.
 
+Now the plan is to have either (1) multiple commands declared in `pyproject.toml`
+pointing to `__main__` files in separate packages (crawler, parser, db-loader, ...)
+or (2) have a single command with multiple sub-commands. I like the later one
+better, however, the first one might be more Pythonic.
+
 It is important to specify the last MED entry ID number for the crawler to know
 where to stop making requests to the server. At this point in time (2022-08-28),
 the last MED entry is `54083`.
