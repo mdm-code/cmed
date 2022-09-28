@@ -21,6 +21,7 @@ keywords = [
 ]
 dependencies = [
 	"requests",
+	"tqdm",
 ]
 requires-python = ">=3.10"
 

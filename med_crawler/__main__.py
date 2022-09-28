@@ -33,7 +33,7 @@ def get_args() -> argparse.Namespace:
 
 def parse(args: argparse.Namespace) -> None:
     c = Crawler(args.last_id)
-    for page in c.crawl():
+    for page in c.crawl(args.verbose):
         if page.ok:
             args.output.write(page.text)
         else:

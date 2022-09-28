@@ -35,5 +35,5 @@ def test_crawler_public_sync_crawl(mocker) -> None:
     mocker.patch("requests.get", return_value=MockResp())
     mocker.patch("asyncio.Semaphore.locked", return_value=False)
     c = crawler.Crawler(3)
-    result = c.crawl()
-    assert len(result) == 2
+    result = c.crawl(False)
+    assert len(result) == 3

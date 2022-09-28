@@ -8,6 +8,9 @@ import requests
 from typing import Any, ClassVar, Coroutine
 import urllib.parse
 
+# Third-party library imports
+from tqdm import tqdm
+
 
 __all__ = ["Crawler", "WebContents", "LAST_MED_ENTRY_ID"]
 
@@ -33,29 +36,39 @@ class Crawler:
     def __init__(
         self,
         last_entry_id: int = LAST_MED_ENTRY_ID,
-        concurrent_requests: int = 3,
+        concurrent_requests: int = 10,
     ) -> None:
         self.last_entry_id = last_entry_id
         self.semaphore = asyncio.Semaphore(concurrent_requests)
 
-    def crawl(self) -> list[WebContents]:
-        result = asyncio.run(self.crawl_asyc())
+    def crawl(self, verbose: bool = False) -> list[WebContents]:
+        result = asyncio.run(self.crawl_asyc(verbose))
         return result
 
-    async def crawl_asyc(self) -> list[WebContents]:
+    async def crawl_asyc(self, verbose: bool = False) -> list[WebContents]:
         result: list[WebContents] = []
         tasks: list[Coroutine[Any, Any, WebContents]] = []
-        for id in range(1, self.last_entry_id):
-            tasks.append(self.http_get(id))
+
+        if verbose:
+            bar = tqdm(total=self.last_entry_id, desc="crawling MED:")
+        else:
+            bar = None
+
+        for id in range(1, self.last_entry_id+1):
+            tasks.append(self.http_get(id, bar=bar))
         result.extend(await asyncio.gather(*tasks))
         return result
 
-    async def http_get(self, id: int = 0) -> WebContents:
+    async def http_get(
+        self, id: int = 0, **kwargs: tqdm | None
+    ) -> WebContents:
         async with self.semaphore:
             result = await asyncio.to_thread(self.http_get_sync, id)
             if self.semaphore.locked():
                 await asyncio.sleep(1)
             if result.ok:
+                if b := kwargs.get("bar", None):
+                    b.update(1)
                 return result
         raise ValueError(f"Unexpected status code: {result.status_code}")
 
