@@ -11,6 +11,10 @@ An account of how to install and deploy `cmed` on the machine.
 
 A detailed description on how to use `cmed`.
 
+It is important to specify the last MED entry ID number for the crawler to know
+where to stop making requests to the server. At this point in time (2022-08-28),
+the last MED entry is `54083`.
+
 
 ## Development
 
