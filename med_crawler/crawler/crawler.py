@@ -9,6 +9,9 @@ from typing import Any, ClassVar, Coroutine
 import urllib.parse
 
 
+__all__ = ["Crawler", "WebContents", "LAST_MED_ENTRY_ID"]
+
+
 LAST_MED_ENTRY_ID = 54_083
 
 
@@ -29,11 +32,11 @@ class Crawler:
 
     def __init__(
         self,
-        last_id: int = LAST_MED_ENTRY_ID,
-        simultaneous_requests: int = 30,
+        last_entry_id: int = LAST_MED_ENTRY_ID,
+        concurrent_requests: int = 3,
     ) -> None:
-        self.last_id = last_id
-        self.sem = asyncio.Semaphore(simultaneous_requests)
+        self.last_entry_id = last_entry_id
+        self.semaphore = asyncio.Semaphore(concurrent_requests)
 
     def crawl(self) -> list[WebContents]:
         result = asyncio.run(self.crawl_asyc())
@@ -42,14 +45,19 @@ class Crawler:
     async def crawl_asyc(self) -> list[WebContents]:
         result: list[WebContents] = []
         tasks: list[Coroutine[Any, Any, WebContents]] = []
-        for id in range(1, self.last_id):
+        for id in range(1, self.last_entry_id):
             tasks.append(self.http_get(id))
         result.extend(await asyncio.gather(*tasks))
         return result
 
     async def http_get(self, id: int = 0) -> WebContents:
-        async with self.sem:
-            return await asyncio.to_thread(self.http_get_sync, id)
+        async with self.semaphore:
+            result = await asyncio.to_thread(self.http_get_sync, id)
+            if self.semaphore.locked():
+                await asyncio.sleep(1)
+            if result.ok:
+                return result
+        raise ValueError(f"Unexpected status code: {result.status_code}")
 
     def http_get_sync(self, id: int = 0) -> WebContents:
         url = urllib.parse.urljoin(self.url, f"MED{id}")
