@@ -29,9 +29,9 @@ class WebContents:
 
 
 class Crawler:
-    url: ClassVar[str] = (
-        "https://quod.lib.umich.edu/m/middle-english-dictionary/dictionary/"
-    )
+    url: ClassVar[
+        str
+    ] = "https://quod.lib.umich.edu/m/middle-english-dictionary/dictionary/"
 
     def __init__(
         self,
@@ -50,13 +50,16 @@ class Crawler:
         tasks: list[Coroutine[Any, Any, WebContents]] = []
 
         if verbose:
-            bar = tqdm(total=self.last_entry_id, desc="crawling MED:")
+            bar = tqdm(
+                total=self.last_entry_id,
+                desc="Crawling Middle English Dictionary",
+            )
         else:
             bar = None
 
-        for id in range(1, self.last_entry_id+1):
+        for id in range(1, self.last_entry_id + 1):
             tasks.append(self.http_get(id, bar=bar))
-        result.extend(await asyncio.gather(*tasks))
+        result.extend(await asyncio.gather(*tasks, return_exceptions=True))
         return result
 
     async def http_get(

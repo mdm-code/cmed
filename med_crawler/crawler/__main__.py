@@ -2,10 +2,10 @@
 
 # Standard library imports
 import argparse
-import asyncio
+import sys
 
 # Local library imports
-from med_crawler.crawler import Crawler, LAST_MED_ENTRY_ID
+from . import Crawler, LAST_MED_ENTRY_ID
 
 
 def get_args() -> argparse.Namespace:
@@ -31,18 +31,18 @@ def get_args() -> argparse.Namespace:
     return result
 
 
-def parse(args: argparse.Namespace) -> None:
+def crawl(args: argparse.Namespace) -> None:
     c = Crawler(args.last_id)
     for page in c.crawl(args.verbose):
         if page.ok:
             args.output.write(page.text)
         else:
-            break
+            sys.exit(1)
 
 
 def main() -> None:
     args = get_args()
-    parse(args)
+    crawl(args)
 
 
 if __name__ == "__main__":
