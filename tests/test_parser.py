@@ -15,6 +15,7 @@ from med_crawler.parser import parser
             resp_text,
             [
                 parser.Entry(
+                    source_id="MED1",
                     headword="ā",
                     _pos="n.(1)",
                     forms=[

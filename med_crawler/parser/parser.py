@@ -25,16 +25,23 @@ class BsNode(Protocol):
     def find_all(self, *args: Any, **kwargs: Any) -> list[BsNode]:
         raise NotImplementedError
 
+    def get(self, *args: Any, **kwargs: Any) -> str:
+        raise NotImplementedError
+
 
 class EntryDict(TypedDict):
+    source_id: str
     headword: str
     pos: str
     forms: list[dict[str, bool | str]]
-    citations: list[dict[str, str]]
+    citations: list[dict[str, str | None]]
 
 
+# TODO: rework POS with a dictionary replacement
+# TODO: replace unwnted chars in the headword/forms, citations
 @dataclass(slots=True, frozen=True, eq=True)
 class Entry:
+    source_id: str
     headword: str
     _pos: str
     forms: list[Form]
@@ -46,10 +53,13 @@ class Entry:
 
     def asdict(self) -> EntryDict:
         return {
+            "source_id": self.source_id,
             "headword": self.headword,
             "pos": self.pos,
             "forms": [f.asdict() for f in self.forms],
-            "citations": [c.asdict() for c in self.citations],
+            "citations": [
+                c.asdict() for c in self.citations if not c.is_empty()
+            ],
         }
 
 
@@ -75,15 +85,23 @@ class Citation:
     scope: str
     text: str
 
-    def asdict(self) -> dict[str, str]:
+    def is_empty(self) -> bool:
+        return not any(
+            [
+                getattr(self, attr, None)
+                for attr in self.__dataclass_fields__.keys()
+            ]
+        )
+
+    def asdict(self) -> dict[str, str | None]:
         return {
-            "url": self.url,
-            "date": self.date,
-            "author": self.author,
-            "title": self.title,
-            "ms": self.ms,
-            "scope": self.scope,
-            "text": self.text,
+            "url": self.url or None,
+            "date": self.date or None,
+            "author": self.author or None,
+            "title": self.title or None,
+            "ms": self.ms or None,
+            "scope": self.scope or None,
+            "text": self.text or None,
         }
 
 
@@ -106,6 +124,7 @@ class Parser:
         for html in self.soup.find_all("div", {"id": entry_regex}):
             entries.append(
                 Entry(
+                    source_id=self._find_source_id(html),
                     headword=self._find_headword(html),
                     _pos=self._find_pos(html),
                     forms=[Form(*f) for f in self._find_forms(html)],
@@ -113,6 +132,9 @@ class Parser:
                 )
             )
         return entries
+
+    def _find_source_id(self, elem: BsNode) -> str:
+        return elem.get("id").split("_")[-1].upper()
 
     def _find_headword(self, elem: BsNode) -> str:
         head_node: Any = elem.find("div", {"class": "entry-headword"})
