@@ -10,6 +10,7 @@ class LoggingError(Exception):
 
 
 class Level(str, enum.Enum):
+    ok = OK = "OK"
     warning = WARN = "WARNING"
     error = ERROR = "ERROR"
 
@@ -29,8 +30,9 @@ class CrawlerLogger:
 
     def log(self, msg: str, lvl: Level) -> None:
         match lvl:
-            case lvl.error | lvl.warning:
+            case lvl.ok | lvl.error | lvl.warning:
                 self.out.write(f"{next(self.counter)} {format(lvl)}: {msg}\n")
+                self.out.flush()
             case _:
                 raise LoggingError(f"{str(lvl)} not supported")
 
