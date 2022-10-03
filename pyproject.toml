@@ -22,6 +22,7 @@ keywords = [
 dependencies = [
 	"requests",
 	"tqdm",
+	"beautifulsoup4",
 ]
 requires-python = ">=3.10"
 
