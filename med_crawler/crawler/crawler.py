@@ -5,11 +5,16 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 import requests
-from typing import Any, ClassVar, Coroutine
+from typing import Any, ClassVar, Coroutine, TextIO, TYPE_CHECKING
 import urllib.parse
 
 # Third-party library imports
 from tqdm import tqdm
+
+# Local library imports
+if TYPE_CHECKING:
+    from med_crawler.log import Logger
+from med_crawler.log import Level
 
 
 __all__ = ["Crawler", "WebContents", "LAST_MED_ENTRY_ID"]
@@ -28,6 +33,8 @@ class WebContents:
         return self.status_code == 200
 
 
+# TODO: Enable the crawler to write to file directly
+# TODO: Add Crawler logging logic
 class Crawler:
     url: ClassVar[
         str
@@ -35,9 +42,13 @@ class Crawler:
 
     def __init__(
         self,
+        output: TextIO,
+        logger: Logger,
         last_entry_id: int = LAST_MED_ENTRY_ID,
-        concurrent_requests: int = 10,
+        concurrent_requests: int = 5,
     ) -> None:
+        self.output = output
+        self.logger = logger
         self.last_entry_id = last_entry_id
         self.semaphore = asyncio.Semaphore(concurrent_requests)
 
@@ -47,7 +58,7 @@ class Crawler:
 
     async def crawl_asyc(self, verbose: bool = False) -> list[WebContents]:
         result: list[WebContents] = []
-        tasks: list[Coroutine[Any, Any, WebContents]] = []
+        tasks: list[Coroutine[Any, Any, None]] = []
 
         if verbose:
             bar = tqdm(
@@ -62,18 +73,25 @@ class Crawler:
         result.extend(await asyncio.gather(*tasks, return_exceptions=True))
         return result
 
+    # TODO: this method has to be overriden when subclassed
     async def http_get(
         self, id: int = 0, **kwargs: tqdm | None
-    ) -> WebContents:
+    ) -> None:
         async with self.semaphore:
             result = await asyncio.to_thread(self.http_get_sync, id)
             if self.semaphore.locked():
-                await asyncio.sleep(1)
+                await asyncio.sleep(5)
             if result.ok:
                 if b := kwargs.get("bar", None):
                     b.update(1)
-                return result
-        raise ValueError(f"Unexpected status code: {result.status_code}")
+                self.logger.log(f"crawled MED{id} successfully", Level.OK)
+                self.output.write(result.text)
+            else:
+                self.logger.log(
+                    f"failed to crawl MED{id};"
+                    f"status code: {result.status_code}",
+                    Level.ERROR
+                )
 
     def http_get_sync(self, id: int = 0) -> WebContents:
         url = urllib.parse.urljoin(self.url, f"MED{id}")
