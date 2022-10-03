@@ -2,6 +2,7 @@
 
 # Standard library imports
 from io import StringIO
+from contextlib import nullcontext as does_not_raise
 
 # Third-party library imports
 import pytest
@@ -31,5 +32,5 @@ def test_crawler_public_sync_crawl(mocker, mock_io) -> None:
     mocker.patch("requests.get", return_value=MockResp())
     mocker.patch("asyncio.Semaphore.locked", return_value=False)
     c = crawler.Crawler(mock_io, log.CrawlerLogger(mock_io), 3)
-    result = c.crawl(False)
-    assert len(result) == 3
+    with does_not_raise():
+        c.crawl(False)

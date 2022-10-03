@@ -33,8 +33,6 @@ class WebContents:
         return self.status_code == 200
 
 
-# TODO: Enable the crawler to write to file directly
-# TODO: Add Crawler logging logic
 class Crawler:
     url: ClassVar[
         str
@@ -52,12 +50,10 @@ class Crawler:
         self.last_entry_id = last_entry_id
         self.semaphore = asyncio.Semaphore(concurrent_requests)
 
-    def crawl(self, verbose: bool = False) -> list[WebContents]:
-        result = asyncio.run(self.crawl_asyc(verbose))
-        return result
+    def crawl(self, verbose: bool = False) -> None:
+        asyncio.run(self.crawl_asyc(verbose))
 
-    async def crawl_asyc(self, verbose: bool = False) -> list[WebContents]:
-        result: list[WebContents] = []
+    async def crawl_asyc(self, verbose: bool = False) -> None:
         tasks: list[Coroutine[Any, Any, None]] = []
 
         if verbose:
@@ -70,10 +66,8 @@ class Crawler:
 
         for id in range(1, self.last_entry_id + 1):
             tasks.append(self.http_get(id, bar=bar))
-        result.extend(await asyncio.gather(*tasks, return_exceptions=True))
-        return result
+        await asyncio.gather(*tasks, return_exceptions=True)
 
-    # TODO: this method has to be overriden when subclassed
     async def http_get(
         self, id: int = 0, **kwargs: tqdm | None
     ) -> None:
@@ -84,7 +78,7 @@ class Crawler:
             if result.ok:
                 if b := kwargs.get("bar", None):
                     b.update(1)
-                self.logger.log(f"crawled MED{id} successfully", Level.OK)
+                self.logger.log(f"crawled MED{id}", Level.OK)
                 self.output.write(result.text)
             else:
                 self.logger.log(
