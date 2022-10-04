@@ -20,6 +20,9 @@ keywords = [
 	"database",
 ]
 dependencies = [
+	"requests",
+	"tqdm",
+	"beautifulsoup4",
 ]
 requires-python = ">=3.10"
 
@@ -30,9 +33,11 @@ Homepage = "https://github.com/mdm-code/cmed"
 dev = [
 	"pytest",
 	"pytest-cov",
+	"pytest-mock",
 	"mypy",
 	"black",
 	"pre-commit",
+	"types-requests",
 ]
 
 [tool.setuptools.packages.find]
@@ -42,7 +47,8 @@ include = [
 ]
 
 [project.scripts]
-cmed = "med_crawler.__main__:main"
+med-crawl = "med_crawler.crawler.__main__:main"
+med-parse = "med_crawler.parser.__main__:main"
 
 [tool.black]
 line-length = 79

@@ -12,7 +12,7 @@ format:
 	black $(PKG_SOURCE) $(TEST_DIR)
 .PHONY: format
 
-types: format
+types:
 	mypy $(PKG_SOURCE) $(TEST_DIR)
 .PHONY: types
 
