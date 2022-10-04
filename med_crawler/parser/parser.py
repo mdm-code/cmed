@@ -4,11 +4,14 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import enum
+from functools import partial
 import re
-from typing import Any, Protocol, Text, TypedDict
+from typing import Any, Text, TypedDict
+import multiprocessing
 
 # Third-party library imports
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 
 
 __all__ = ["Entry", "Parser", "ParsingStrategy"]
@@ -16,17 +19,6 @@ __all__ = ["Entry", "Parser", "ParsingStrategy"]
 
 class ParsingException(Exception):
     ...
-
-
-class BsNode(Protocol):
-    def find(self, *args: Any, **kwargs: Any) -> BsNode | str | None:
-        raise NotImplementedError
-
-    def find_all(self, *args: Any, **kwargs: Any) -> list[BsNode]:
-        raise NotImplementedError
-
-    def get(self, *args: Any, **kwargs: Any) -> str:
-        raise NotImplementedError
 
 
 class EntryDict(TypedDict):
@@ -107,107 +99,123 @@ class Citation:
 
 class ParsingStrategy(str, enum.Enum):
     html = HTML = "html.parser"
+    lxml = LXML = "lxml"
 
 
 class Parser:
     def __init__(
         self,
-        text: Text,
-        strategy: ParsingStrategy = ParsingStrategy.html,
+        htmls: list[Text],
+        strategy: ParsingStrategy = ParsingStrategy.lxml,
     ) -> None:
-        self.soup = BeautifulSoup(text, strategy)
+        self.htmls = htmls
+        self.strategy = strategy
 
     @property
     def parsed(self) -> list[Entry]:
-        entry_regex = re.compile("doc_med.*")
         entries: list[Entry] = []
-        for html in self.soup.find_all("div", {"id": entry_regex}):
-            entries.append(
-                Entry(
-                    source_id=self._find_source_id(html),
-                    headword=self._find_headword(html),
-                    _pos=self._find_pos(html),
-                    forms=[Form(*f) for f in self._find_forms(html)],
-                    citations=[Citation(**c) for c in self._find_cits(html)],
-                )
-            )
+
+        if not self.htmls:
+            return entries
+
+        n_cpus = multiprocessing.cpu_count()
+        pool = multiprocessing.Pool(processes=n_cpus-1 if n_cpus > 1 else 1)
+        entries.extend(
+            pool.map(partial(parse, strategy=self.strategy), self.htmls)
+        )
         return entries
 
-    def _find_source_id(self, elem: BsNode) -> str:
-        return elem.get("id").split("_")[-1].upper()
+def parse(html: Text , strategy: ParsingStrategy) -> Entry:
+    soup = BeautifulSoup(html, strategy)
+    return Entry(
+            source_id=_find_source_id(soup),
+            headword=_find_headword(soup),
+            _pos=_find_pos(soup),
+            forms=[Form(*f) for f in _find_forms(soup)],
+            citations=[Citation(**c) for c in _find_cits(soup)]
+        )
 
-    def _find_headword(self, elem: BsNode) -> str:
-        head_node: Any = elem.find("div", {"class": "entry-headword"})
-        if not head_node:
-            raise ParsingException("failed to detect entry-headword")
-        hw: Any = head_node.find(text=True)
-        if not hw:
-            raise ParsingException("failed to find the entry headword")
-        if isinstance(hw, str):
-            return hw.strip()
-        raise ParsingException("headword is None")
+def _find_source_id(soup: BeautifulSoup) -> str:
+    doc_regex = re.compile("doc_med[0-9]+")
+    div = soup.find("div", {"id": doc_regex})
+    if isinstance(div, Tag):
+        result = div.get("id", "")
+        if isinstance(result, str):
+            return result.split("_")[-1].upper()
+    raise ParsingException("failed to extract the MED document ID")
 
-    def _find_pos(self, elem: BsNode) -> str:
-        head_node: Any = elem.find("div", {"class": "entry-headword"})
-        if not head_node:
-            raise ParsingException("failed to detect entry-headword")
-        pos: Any = head_node.find("span", {"class": "entry-pos"})
-        if not pos:
-            raise ParsingException("failed to find the entry POS")
-        return pos.text.strip()
+def _find_headword(soup: BeautifulSoup) -> str:
+    head_node: Any = soup.find("div", {"class": "entry-headword"})
+    if not head_node:
+        raise ParsingException("failed to detect entry-headword")
+    hw: Any = head_node.find(text=True)
+    if not hw:
+        raise ParsingException("failed to find the entry headword")
+    if isinstance(hw, str):
+        return hw.strip()
+    raise ParsingException("headword is None")
 
-    def _find_forms(self, elem: BsNode) -> list[tuple[bool, str]]:
-        result: list[tuple[bool, str]] = []
-        form_node: Any = elem.find("span", {"class": "FORM"})
-        if not form_node:
-            raise ParsingException("failed to find the form node")
-        head_form: str = form_node.find(
-            "span", {"class": "HDORTH"}
-        ).text.strip()
-        if not head_form:
-            raise ParsingException("failed to dectect the headword form")
-        result.append((True, head_form))
-        forms: list[str] = [
-            orth.text.strip()
-            for orth in form_node.find_all("span", {"class": "ORTH"}) or []
-        ]
-        result.extend([(False, f) for f in forms])
-        if not result:
-            raise ParsingException("failed to find any spelling forms")
-        return result
+def _find_pos(soup: BeautifulSoup) -> str:
+    head_node: Any = soup.find("div", {"class": "entry-headword"})
+    if not head_node:
+        raise ParsingException("failed to detect entry-headword")
+    pos: Any = head_node.find("span", {"class": "entry-pos"})
+    if not pos:
+        raise ParsingException("failed to find the entry POS")
+    return pos.text.strip()
 
-    def _find_cits(self, elem: BsNode) -> list[dict[str, str]]:
-        sense_node: Any = elem.find("div", {"class": "senses"})
-        if not sense_node:
-            raise ParsingException("failed to find the sense node")
+def _find_forms(soup: BeautifulSoup) -> list[tuple[bool, str]]:
+    result: list[tuple[bool, str]] = []
+    form_node: Any = soup.find("span", {"class": "FORM"})
+    if not form_node:
+        raise ParsingException("failed to find the form node")
+    head_form: str = form_node.find(
+        "span", {"class": "HDORTH"}
+    ).text.strip()
+    if not head_form:
+        raise ParsingException("failed to dectect the headword form")
+    result.append((True, head_form))
+    forms: list[str] = [
+        orth.text.strip()
+        for orth in form_node.find_all("span", {"class": "ORTH"}) or []
+    ]
+    result.extend([(False, f) for f in forms])
+    if not result:
+        raise ParsingException("failed to find any spelling forms")
+    return result
 
-        class EmptySpan:
-            text: str = ""
+def _find_cits(soup: BeautifulSoup) -> list[dict[str, str]]:
+    sense_node: Any = soup.find("div", {"class": "senses"})
+    if not sense_node:
+        raise ParsingException("failed to find the sense node")
 
-        citations: list[dict[str, str]] = [
-            {
-                "url": (cit.find("a") or {}).get("href", "").strip(),
-                "date": (
-                    cit.find("span", {"class": "DATE"}) or EmptySpan
-                ).text.strip(),
-                "author": (
-                    cit.find("span", {"class": "AUTHOR"}) or EmptySpan
-                ).text.strip(),
-                "title": (
-                    cit.find("span", {"class": "TITLE"}) or EmptySpan
-                ).text.strip(),
-                "ms": (
-                    cit.find("span", {"clas": "MS"}) or EmptySpan
-                ).text.strip(),
-                "scope": (
-                    cit.find("span", {"class": "SCOPE"}) or EmptySpan
-                ).text.strip(),
-                "text": (
-                    cit.find("span", {"class": "Q"}) or EmptySpan
-                ).text.strip(),
-            }
-            for cit in sense_node.find_all(
-                "li", {"class": "citation-list-item"}
-            )
-        ]
-        return citations
+    class EmptySpan:
+        text: str = ""
+
+    citations: list[dict[str, str]] = [
+        {
+            "url": (cit.find("a") or {}).get("href", "").strip(),
+            "date": (
+                cit.find("span", {"class": "DATE"}) or EmptySpan
+            ).text.strip(),
+            "author": (
+                cit.find("span", {"class": "AUTHOR"}) or EmptySpan
+            ).text.strip(),
+            "title": (
+                cit.find("span", {"class": "TITLE"}) or EmptySpan
+            ).text.strip(),
+            "ms": (
+                cit.find("span", {"clas": "MS"}) or EmptySpan
+            ).text.strip(),
+            "scope": (
+                cit.find("span", {"class": "SCOPE"}) or EmptySpan
+            ).text.strip(),
+            "text": (
+                cit.find("span", {"class": "Q"}) or EmptySpan
+            ).text.strip(),
+        }
+        for cit in sense_node.find_all(
+            "li", {"class": "citation-list-item"}
+        )
+    ]
+    return citations
