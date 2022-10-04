@@ -9,10 +9,10 @@ from med_crawler.parser import parser
 
 
 @pytest.mark.parametrize(
-    "html, want",
+    "htmls, want",
     [
         (
-            resp_text,
+            [resp_text],
             [
                 parser.Entry(
                     source_id="MED1",
@@ -37,7 +37,7 @@ from med_crawler.parser import parser
         )
     ]
 )
-def test_parsing(html: str, want: list[parser.Entry]) -> None:
-    p = parser.Parser(html, parser.ParsingStrategy.html)
+def test_parsing(htmls: list[str], want: list[parser.Entry]) -> None:
+    p = parser.Parser(htmls, parser.ParsingStrategy.html)
     have = p.parsed
     assert have == want
