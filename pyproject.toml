@@ -47,7 +47,8 @@ include = [
 ]
 
 [project.scripts]
-cmed = "med_crawler.__main__:main"
+med-crawl = "med_crawler.crawler.__main__:main"
+med-parse = "med_crawler.parser.__main__:main"
 
 [tool.black]
 line-length = 79

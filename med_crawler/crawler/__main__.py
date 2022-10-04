@@ -2,10 +2,11 @@
 
 # Standard library imports
 import argparse
-import sys
+import datetime
 
 # Local library imports
 from . import Crawler, LAST_MED_ENTRY_ID
+from med_crawler.log import CrawlerLogger
 
 
 def get_args() -> argparse.Namespace:
@@ -27,17 +28,34 @@ def get_args() -> argparse.Namespace:
         default=LAST_MED_ENTRY_ID,
         required=False,
     )
+    date_fmt = "%Y%m%dT%H%M%S"
+    time = datetime.datetime.now().strftime(date_fmt)
+    parser.add_argument(
+        "-l",
+        "--log",
+        help="log output file",
+        default=f"med-crawl.{time}.log",
+        type=argparse.FileType("w"),
+    )
+    parser.add_argument(
+        "--requests",
+        help="N concurrent requests",
+        type=int,
+        default=5,
+        required=False,
+    )
     result = parser.parse_args()
     return result
 
 
 def crawl(args: argparse.Namespace) -> None:
-    c = Crawler(args.last_id)
-    for page in c.crawl(args.verbose):
-        if page.ok:
-            args.output.write(page.text)
-        else:
-            sys.exit(1)
+    c = Crawler(
+        output=args.output,
+        logger=CrawlerLogger(args.log, include_date=True),
+        last_entry_id=args.last_id,
+        concurrent_requests=args.requests,
+    )
+    c.crawl(args.verbose)
 
 
 def main() -> None:

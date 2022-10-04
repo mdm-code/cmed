@@ -3,6 +3,7 @@
 # Standard library imports
 import argparse
 import json
+from typing import Text
 
 # Local library imports
 from . import Parser, ParsingStrategy
@@ -32,8 +33,10 @@ def get_args() -> argparse.Namespace:
 
 
 def parse(args: argparse.Namespace) -> None:
-    html = args.input.read()
-    p = Parser(html, ParsingStrategy.html)
+    htmls: list[Text] = list(
+        filter(lambda x: x != "", args.input.read().split("<!DOCTYPE html>"))
+    )
+    p = Parser(htmls, ParsingStrategy.lxml)
     result = json.dumps([entry.asdict() for entry in p.parsed])
     args.output.write(result)
 
