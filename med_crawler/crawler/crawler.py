@@ -82,8 +82,8 @@ class Crawler:
                 self.output.write(result.text)
             else:
                 self.logger.log(
-                    f"failed to crawl MED{id};"
-                    f"status code: {result.status_code}",
+                    f"failed to crawl MED{id}. "
+                    f"returned status code: {result.status_code}",
                     Level.ERROR
                 )
 
