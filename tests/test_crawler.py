@@ -22,7 +22,7 @@ def mock_io() -> StringIO:
 def test_crawler_http_get_sync(mocker, id: int, mock_io) -> None:
     mocker.patch("requests.get", return_value=MockResp())
     mocker.patch("asyncio.Semaphore.locked", return_value=False)
-    c = crawler.Crawler(mock_io, log.CrawlerLogger(mock_io))
+    c = crawler.Crawler(mock_io, log.CrawlerLogger(mock_io, False))
     result = c.http_get_sync(id)
     assert result.text == resp_text
     assert result.status_code == 200
@@ -31,6 +31,6 @@ def test_crawler_http_get_sync(mocker, id: int, mock_io) -> None:
 def test_crawler_public_sync_crawl(mocker, mock_io) -> None:
     mocker.patch("requests.get", return_value=MockResp())
     mocker.patch("asyncio.Semaphore.locked", return_value=False)
-    c = crawler.Crawler(mock_io, log.CrawlerLogger(mock_io), 3)
+    c = crawler.Crawler(mock_io, log.CrawlerLogger(mock_io, False), 3)
     with does_not_raise():
         c.crawl(False)
