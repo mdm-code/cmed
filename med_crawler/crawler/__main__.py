@@ -5,12 +5,14 @@ import argparse
 import datetime
 
 # Local library imports
-from . import Crawler, LAST_MED_ENTRY_ID
+from med_crawler.crawler import Crawler, LAST_MED_ENTRY_ID
 from med_crawler.log import CrawlerLogger
 
 
 def get_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Med-crawl - Crawl MED dictionary entries"
+    )
     parser.add_argument(
         "-v", "--verbose", help="verbose output", action="store_true"
     )

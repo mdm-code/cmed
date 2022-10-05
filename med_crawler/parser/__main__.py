@@ -6,11 +6,13 @@ import json
 from typing import Text
 
 # Local library imports
-from . import Parser, ParsingStrategy
+from med_crawler.parser import Parser, ParsingStrategy
 
 
 def get_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Med-parse - Parse MED html dictionary entry data"
+    )
     parser.add_argument(
         "-v", "--verbose", help="verbose output", action="store_true"
     )
