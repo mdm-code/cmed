@@ -4,10 +4,6 @@ PKG_SOURCE := med_crawler
 
 .DEFAULT_GOAL := run
 
-run:
-	$(INTERPRETER) -m $(PKG_SOURCE) -h
-.PHONY: run
-
 format:
 	black $(PKG_SOURCE) $(TEST_DIR)
 .PHONY: format
@@ -21,7 +17,7 @@ test: types
 .PHONY: test
 
 cov: types
-	pytest $(TESTS_DIR) --cov --cov-report=term-missing
+	pytest $(TESTS_DIR) --cov $(PKG_SOURCE) --cov-report=term-missing
 .PHONY: cov
 
 setup:
