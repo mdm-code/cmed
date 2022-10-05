@@ -1,24 +1,47 @@
 Dictionary entry data crawler for the Middle English Dictionary
-[MED](https://quod.lib.umich.edu/m/middle-english-dictionary/dictionary).
+([MED](https://quod.lib.umich.edu/m/middle-english-dictionary/dictionary))
+lets you crawl and parse data from MED on the command line.
 
 
 ## Installation
 
-An account of how to install and deploy `cmed` on the machine.
+For now, `cmed` is not a distributed package, so it doesn't use
+[pypi.org](https://pypi.org/) to allow you to pull it easily with `pip`.
+
+The way to use it is, first, to clone this repository with `git` and then
+install the package in the editable mode like so:
+
+```sh
+python3.10 -m venv .
+. bin/activate
+make install
+```
+
+Use Python 3.10 to (1) create and activate a virtual environment in the package
+root directory. Then (2) use `make` to install the package in the editable
+mode.
 
 
 ## Usage
 
-A detailed description on how to use `cmed`.
+Once installed in the editable mode, the package `cmed` exposes the following
+shell commands:
 
-Now the plan is to have either (1) multiple commands declared in `pyproject.toml`
-pointing to `__main__` files in separate packages (crawler, parser, db-loader, ...)
-or (2) have a single command with multiple sub-commands. I like the later one
-better, however, the first one might be more Pythonic.
+* med-crawl
+* med-parse
 
-It is important to specify the last MED entry ID number for the crawler to know
-where to stop making requests to the server. At this point in time (2022-08-28),
-the last MED entry is `54083`.
+The first one takes care of crawling html data from the MED website. It has
+a useful help built in. Having tested the interaction with MED server, having
+five concurrent requests is fine; you can try to push it, but I do not vouch
+for it to be stable.
+
+The last MED entry to date (2022-09-28) is 54083. You can use `--last-id` to
+change it, but why would you? Keep it default unless you know it crawl fewer
+web entry pages or you can set to a million and crawl 404 for ages.
+
+The second one is responsible for parsing the crawled data. It also has a 
+built in help, so you can easily reach out to it, but there isn't much to
+it aside from input, output and verbose flags.
 
 
 ## Development
@@ -52,10 +75,6 @@ with the following `make` command:
 ```sh
 make test
 ```
-
-Use `pre-commit` to run the CI routine when committing code to VCS by
-installing it with `pre-commit install`. You can manualy run the routine with
-`pre-commit run`.
 
 Consult [Makefile](Makefile) for further details.
 
