@@ -37,7 +37,7 @@ def parse(args: argparse.Namespace) -> None:
         filter(lambda x: x != "", args.input.read().split("<!DOCTYPE html>"))
     )
     p = Parser(htmls, ParsingStrategy.lxml)
-    result = json.dumps([entry.asdict() for entry in p.parsed])
+    result = json.dumps([entry.asdict() for entry in p.parse(args.verbose)])
     args.output.write(result)
 
 

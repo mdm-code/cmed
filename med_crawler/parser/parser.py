@@ -5,13 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 import enum
 from functools import partial
+import multiprocessing
 import re
 from typing import Any, Text, TypedDict
-import multiprocessing
 
 # Third-party library imports
 from bs4 import BeautifulSoup
 from bs4.element import Tag
+from tqdm import tqdm
 
 
 __all__ = ["Entry", "Parser", "ParsingStrategy"]
@@ -111,8 +112,7 @@ class Parser:
         self.htmls = htmls
         self.strategy = strategy
 
-    @property
-    def parsed(self) -> list[Entry]:
+    def parse(self, verbose: bool = False) -> list[Entry]:
         entries: list[Entry] = []
 
         if not self.htmls:
@@ -120,20 +120,34 @@ class Parser:
 
         n_cpus = multiprocessing.cpu_count()
         pool = multiprocessing.Pool(processes=n_cpus-1 if n_cpus > 1 else 1)
-        entries.extend(
-            pool.map(partial(parse, strategy=self.strategy), self.htmls)
-        )
+
+        if verbose:
+            iter = tqdm(
+                pool.imap_unordered(
+                    partial(parse_single, strategy=self.strategy), self.htmls
+                ),
+                total=len(self.htmls),
+                desc="Parsing Middle English Dictionary"
+            )
+            entries.extend(list(iter))
+        else:
+            entries.extend(
+                pool.imap_unordered(partial(
+                    parse_single, strategy=self.strategy
+                ), self.htmls)
+            )
         return entries
 
-def parse(html: Text , strategy: ParsingStrategy) -> Entry:
+def parse_single(html: Text , strategy: ParsingStrategy) -> Entry:
     soup = BeautifulSoup(html, strategy)
-    return Entry(
+    result = Entry(
             source_id=_find_source_id(soup),
             headword=_find_headword(soup),
             _pos=_find_pos(soup),
             forms=[Form(*f) for f in _find_forms(soup)],
             citations=[Citation(**c) for c in _find_cits(soup)]
         )
+    return result
 
 def _find_source_id(soup: BeautifulSoup) -> str:
     doc_regex = re.compile("doc_med[0-9]+")
