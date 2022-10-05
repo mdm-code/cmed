@@ -39,5 +39,5 @@ from med_crawler.parser import parser
 )
 def test_parsing(htmls: list[str], want: list[parser.Entry]) -> None:
     p = parser.Parser(htmls, parser.ParsingStrategy.html)
-    have = p.parsed
+    have = p.parse()
     assert have == want
