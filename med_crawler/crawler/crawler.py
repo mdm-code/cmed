@@ -68,9 +68,7 @@ class Crawler:
             tasks.append(self.http_get(id, bar=bar))
         await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def http_get(
-        self, id: int = 0, **kwargs: tqdm | None
-    ) -> None:
+    async def http_get(self, id: int = 0, **kwargs: tqdm | None) -> None:
         async with self.semaphore:
             result = await asyncio.to_thread(self.http_get_sync, id)
             if self.semaphore.locked():
@@ -84,7 +82,7 @@ class Crawler:
                 self.logger.log(
                     f"failed to crawl MED{id}. "
                     f"returned status code: {result.status_code}",
-                    Level.ERROR
+                    Level.ERROR,
                 )
 
     def http_get_sync(self, id: int = 0) -> WebContents:

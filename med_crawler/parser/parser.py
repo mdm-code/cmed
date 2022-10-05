@@ -119,7 +119,7 @@ class Parser:
             return entries
 
         n_cpus = multiprocessing.cpu_count()
-        pool = multiprocessing.Pool(processes=n_cpus-1 if n_cpus > 1 else 1)
+        pool = multiprocessing.Pool(processes=n_cpus - 1 if n_cpus > 1 else 1)
 
         if verbose:
             iter = tqdm(
@@ -127,27 +127,29 @@ class Parser:
                     partial(parse_single, strategy=self.strategy), self.htmls
                 ),
                 total=len(self.htmls),
-                desc="Parsing Middle English Dictionary"
+                desc="Parsing Middle English Dictionary",
             )
             entries.extend(list(iter))
         else:
             entries.extend(
-                pool.imap_unordered(partial(
-                    parse_single, strategy=self.strategy
-                ), self.htmls)
+                pool.imap_unordered(
+                    partial(parse_single, strategy=self.strategy), self.htmls
+                )
             )
         return entries
 
-def parse_single(html: Text , strategy: ParsingStrategy) -> Entry:
+
+def parse_single(html: Text, strategy: ParsingStrategy) -> Entry:
     soup = BeautifulSoup(html, strategy)
     result = Entry(
-            source_id=_find_source_id(soup),
-            headword=_find_headword(soup),
-            _pos=_find_pos(soup),
-            forms=[Form(*f) for f in _find_forms(soup)],
-            citations=[Citation(**c) for c in _find_cits(soup)]
-        )
+        source_id=_find_source_id(soup),
+        headword=_find_headword(soup),
+        _pos=_find_pos(soup),
+        forms=[Form(*f) for f in _find_forms(soup)],
+        citations=[Citation(**c) for c in _find_cits(soup)],
+    )
     return result
+
 
 def _find_source_id(soup: BeautifulSoup) -> str:
     doc_regex = re.compile("doc_med[0-9]+")
@@ -157,6 +159,7 @@ def _find_source_id(soup: BeautifulSoup) -> str:
         if isinstance(result, str):
             return result.split("_")[-1].upper()
     raise ParsingException("failed to extract the MED document ID")
+
 
 def _find_headword(soup: BeautifulSoup) -> str:
     head_node: Any = soup.find("div", {"class": "entry-headword"})
@@ -169,6 +172,7 @@ def _find_headword(soup: BeautifulSoup) -> str:
         return hw.strip()
     raise ParsingException("headword is None")
 
+
 def _find_pos(soup: BeautifulSoup) -> str:
     head_node: Any = soup.find("div", {"class": "entry-headword"})
     if not head_node:
@@ -178,14 +182,13 @@ def _find_pos(soup: BeautifulSoup) -> str:
         raise ParsingException("failed to find the entry POS")
     return pos.text.strip()
 
+
 def _find_forms(soup: BeautifulSoup) -> list[tuple[bool, str]]:
     result: list[tuple[bool, str]] = []
     form_node: Any = soup.find("span", {"class": "FORM"})
     if not form_node:
         raise ParsingException("failed to find the form node")
-    head_form: str = form_node.find(
-        "span", {"class": "HDORTH"}
-    ).text.strip()
+    head_form: str = form_node.find("span", {"class": "HDORTH"}).text.strip()
     if not head_form:
         raise ParsingException("failed to dectect the headword form")
     result.append((True, head_form))
@@ -197,6 +200,7 @@ def _find_forms(soup: BeautifulSoup) -> list[tuple[bool, str]]:
     if not result:
         raise ParsingException("failed to find any spelling forms")
     return result
+
 
 def _find_cits(soup: BeautifulSoup) -> list[dict[str, str]]:
     sense_node: Any = soup.find("div", {"class": "senses"})
@@ -218,9 +222,7 @@ def _find_cits(soup: BeautifulSoup) -> list[dict[str, str]]:
             "title": (
                 cit.find("span", {"class": "TITLE"}) or EmptySpan
             ).text.strip(),
-            "ms": (
-                cit.find("span", {"clas": "MS"}) or EmptySpan
-            ).text.strip(),
+            "ms": (cit.find("span", {"clas": "MS"}) or EmptySpan).text.strip(),
             "scope": (
                 cit.find("span", {"class": "SCOPE"}) or EmptySpan
             ).text.strip(),
@@ -228,8 +230,6 @@ def _find_cits(soup: BeautifulSoup) -> list[dict[str, str]]:
                 cit.find("span", {"class": "Q"}) or EmptySpan
             ).text.strip(),
         }
-        for cit in sense_node.find_all(
-            "li", {"class": "citation-list-item"}
-        )
+        for cit in sense_node.find_all("li", {"class": "citation-list-item"})
     ]
     return citations
