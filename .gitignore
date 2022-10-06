@@ -6,3 +6,4 @@ include/*
 .coverage*
 pyvenv.cfg
 TIMER
+scripts/*
