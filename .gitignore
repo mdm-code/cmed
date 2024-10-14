@@ -5,5 +5,3 @@ include/*
 *.py[ci]
 .coverage*
 pyvenv.cfg
-TIMER
-scripts/*
